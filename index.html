@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Thống kê rà soát phân loại ILIS - V4</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+body{margin:0;background:#f6f8fb;color:#172033;font:15px system-ui,"Segoe UI",sans-serif}
+main{max-width:1280px;margin:auto;padding:30px 22px}
+.topline{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+h1{font-size:25px;margin:0}.version{margin-top:5px;color:#5f6b7a;font-size:13px}
+.clock{flex:none;text-align:right;color:#41536a;font-size:13px;line-height:1.55}
+h2{font-size:19px;margin-top:28px}h3{font-size:15px;margin:22px 0 8px;color:#1f4e78}
+.intro,.hint,footer{color:#5f6b7a}
+.box{margin-top:20px;background:#fff;padding:20px;border:1px solid #d9e1ec;border-radius:12px}
+.drop{display:block;padding:24px;text-align:center;border:2px dashed #9ab9dc;border-radius:9px;background:#edf5ff;color:#174e87;font-weight:bold;cursor:pointer}
+.drop.drag{background:#dceeff}input[type=file]{display:none}
+.config{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+.field{display:grid;gap:5px;font-weight:650;align-content:start}.field span{font-size:13px;color:#41536a}
+select,.field input,.sec input[type=text]{padding:8px;border:1px solid #b9c8d8;border-radius:7px;background:#fff;font:inherit;min-width:0}
+.secs{display:grid;gap:8px}
+.sec{display:grid;grid-template-columns:28px 1.3fr 1fr;gap:10px;align-items:center;padding:8px 10px;border:1px solid #e3e9f1;border-radius:8px;background:#fafcff}
+.sec input[type=checkbox]{width:18px;height:18px}
+.opts{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:14px;font-size:14px}
+.opts label{display:flex;gap:7px;align-items:center}
+.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:18px}
+button{border:0;border-radius:7px;padding:9px 14px;background:#1666c5;color:#fff;font:inherit;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.45;cursor:default}button.alt{background:#1f7a4d}button.danger{background:#c0392b}
+.status{color:#5f6b7a}.error{color:#a52626}
+.cards{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}
+.card{min-width:145px;padding:12px;border:1px solid #d9e1ec;border-radius:9px;background:#fff}
+.card b{font-size:22px;display:block}.card span{font-size:13px;color:#5f6b7a}
+.table-wrap{overflow:auto;max-height:70vh;border:1px solid #d9e1ec;border-radius:9px;background:#fff}
+table{border-collapse:collapse;width:max-content;min-width:100%;font:13px Arial,sans-serif}
+td,th{padding:5px 8px;border:1px solid #c9d3df;text-align:right;white-space:nowrap}
+td:first-child,th:first-child{text-align:left;position:sticky;left:0;z-index:2;background:#fff;min-width:380px;max-width:520px;white-space:normal}
+thead th{position:sticky;top:0;z-index:3;background:#1f4e78;color:#fff;font-weight:bold;text-align:center;white-space:normal;min-width:110px;height:34px}
+thead th:first-child{background:#1f4e78;z-index:4}
+tr.bold td{font-weight:bold;font-size:14px}
+tr.title td{border:0;font-weight:bold;font-size:14px;background:#f6f8fb;color:#1f4e78}
+tr.title td:first-child{background:#f6f8fb}
+tr.gap td{border:0;height:8px;padding:0;background:#fff}
+tr.sechead td{background:#3e8e6e!important;color:#fff;font-weight:bold}
+tr.top td{background:#ffff00!important}
+td.last,th.last{font-weight:bold}
+footer{margin-top:34px;padding-top:15px;border-top:1px solid #d9e1ec;font-size:13px}
+progress{width:100%;height:10px;accent-color:#1666c5;margin-top:10px;display:none}progress.show{display:block}
+@media(max-width:900px){.config{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.config{grid-template-columns:1fr}.sec{grid-template-columns:28px 1fr}.sec input[type=text]{grid-column:2}.topline{display:block}.clock{text-align:left;margin-top:10px}td:first-child,th:first-child{min-width:220px}}
+</style></head><body><main>
+<header class="topline"><div><h1>Tổng hợp thống kê kết quả rà soát, phân loại thửa đất từ dữ liệu trích xuất ILIS - V4</h1><div class="version">Phiên bản: GV4.0.2026.09.29 — kế thừa công cụ phân tích V3</div></div><div id="clock" class="clock" aria-live="polite"></div></header>
+<p class="intro">Chọn một hoặc nhiều file Excel trích xuất từ ILIS (sheet <b>TongHop</b>). Công cụ đếm tổng số thửa, số thửa theo Nhóm (cột Q) và thống kê các tiêu chí còn thiếu của Nhóm 2 theo từng xã (cột B), rồi xuất đúng bố cục bảng <b>ThongKe</b>.</p>
+
+<section class="box">
+<label class="drop" id="drop" for="files">Chọn hoặc kéo thả các file Excel vào đây<input id="files" type="file" accept=".xls,.xlsx,.xlsm,.xlsb" multiple></label>
+<div class="config">
+  <label class="field"><span>1. File tham chiếu (để đọc tên cột)</span><select id="ref" disabled></select></label>
+  <label class="field"><span>2. Sheet dữ liệu</span><select id="sheet" disabled></select></label>
+  <label class="field"><span>3. Dòng bắt đầu dữ liệu (số dòng Excel)</span><input id="startRow" type="number" min="1" placeholder="Tự nhận dạng (sau dòng đánh số 1,2,3…)"></label>
+  <label class="field"><span>4. Cột tên đơn vị hành chính (xã)</span><select id="colXa" disabled></select></label>
+  <label class="field"><span>5. Cột phân loại (Nhóm)</span><select id="colGrp" disabled></select></label>
+  <label class="field"><span>6. Giá trị phân loại dùng cho mục B</span><input id="bValue" type="text" value="Nhóm 2"></label>
+</div>
+<h3>Các khối tiêu chí thống kê ở mục B</h3>
+<div class="secs" id="secs"></div>
+<div class="opts">
+  <label><input type="checkbox" id="optOnce" checked> Mỗi nội dung chỉ đếm 1 lần/thửa</label>
+  <label><input type="checkbox" id="optOwner" checked> Bỏ tên chủ trong nội dung (Chủ 'NGUYỄN VĂN A': …)</label>
+  <label><input type="checkbox" id="optAll"> Hiển thị đủ 102 xã theo thứ tự chuẩn (xã chưa có file = 0)</label>
+</div>
+<div class="config" style="grid-template-columns:2fr 1fr">
+  <label class="field"><span>Dòng ghi chú dưới tiêu đề</span><input id="subTitle" type="text" value="(Theo Kế hoạch 2959/KH-BCA-BNNMT ngày 29/3/2026)"></label>
+  <label class="field"><span>Tên file tải về</span><input id="outName" type="text" placeholder="Tự đặt theo ngày"></label>
+</div>
+<div class="actions"><button id="run" disabled>Tạo bảng tổng hợp</button><button id="cancel" class="danger" hidden>Hủy xử lý</button><button id="save" class="alt" disabled>Tải bảng tổng hợp về Excel</button><span id="status" class="status">Chưa chọn file.</span></div>
+<progress id="progress" max="100" value="0"></progress>
+</section>
+<section id="result" hidden></section>
+<footer>Nguồn: Phòng CSDL - Văn phòng đăng ký đất đai tỉnh An Giang.</footer></main>
+
+<script type="text/plain" id="worker-src">
+importScripts('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
+function clean(v){return (v==null?'':String(v)).replace(/ /g,' ').trim();}
+function norm(v){return clean(v).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d').replace(/\s+/g,' ');}
+function cell(ws,r,c){var x;if(Array.isArray(ws)){var row=ws[r];x=row?row[c]:undefined;}else{x=ws[XLSX.utils.encode_cell({r:r,c:c})];}if(!x)return '';return clean(x.w!=null?x.w:(x.v!=null?x.v:''));}
+function autoStart(ws,z,gc){
+  var lim=Math.min(z.e.r,z.s.r+80);
+  for(var r=z.s.r;r<=lim;r++){var ok=true;for(var c=0;c<5;c++){if(cell(ws,r,c)!==String(c+1)){ok=false;break;}}if(ok)return r+1;}
+  for(var r2=z.s.r;r2<=lim;r2++){if(/^nhom\s*\d/.test(norm(cell(ws,r2,gc))))return r2;}
+  return z.s.r+1;
+}
+function splitItems(s,stripOwner){
+  var out=[];s.split(/[;\n]+/).forEach(function(p){
+    p=clean(p);if(!p)return;
+    if(stripOwner)p=p.replace(/^Chủ\s*['‘’"“”].*?['‘’"“”]\s*:\s*/i,'').replace(/^Chủ\s*:\s*/i,'');
+    p=clean(p);if(!p)return;
+    out.push(p.charAt(0).toUpperCase()+p.slice(1));
+  });return out;
+}
+var FOOT=/^(tong(\s|$)|cong hoa|nguoi lap|nguoi ky|ky ten|thu truong|xac nhan|noi nhan|ghi chu|-\s)/;
+function run(wb,m){
+  var name=wb.SheetNames.find(function(n){return norm(n)===norm(m.sheetName);});
+  if(!name)throw new Error('không có sheet "'+m.sheetName+'"');
+  var ws=wb.Sheets[name];if(!ws['!ref'])return {audit:['','',0],data:{}};
+  var z=XLSX.utils.decode_range(ws['!ref']);
+  var first=m.forcedStart>0?m.forcedStart-1:autoStart(ws,z,m.gc);
+  var bKey=norm(m.bValue),data={},start=null,end=null,count=0,blank=0,seen=false;
+  for(var r=first;r<=z.e.r;r++){
+    var xa=cell(ws,r,m.xc),g=cell(ws,r,m.gc);
+    if(!xa&&!g){if(seen&&++blank>=30)break;continue;}
+    blank=0;
+    var a=norm(cell(ws,r,0));
+    if(!g&&FOOT.test(norm(xa)||a))continue;
+    if(!g&&!/^\d+$/.test(a))continue; // dòng ghi chú cuối bảng
+    seen=true;if(start===null)start=r;end=r;count++;
+    if(!xa)xa=m.fallback;
+    var d=data[xa]||(data[xa]={total:0,grp:{},b:0,secs:m.secs.map(function(){return {};})});
+    d.total++;var gk=g||'(Chưa phân loại)';d.grp[gk]=(d.grp[gk]||0)+1;
+    if(norm(g)===bKey){
+      d.b++;
+      for(var i=0;i<m.secs.length;i++){
+        var v=cell(ws,r,m.secs[i]);if(!v)continue;
+        var items=splitItems(v,m.stripOwner);if(m.once)items=items.filter(function(x,k,arr){return arr.indexOf(x)===k;});
+        var s=d.secs[i];items.forEach(function(it){s[it]=(s[it]||0)+1;});
+      }
+    }
+  }
+  return {audit:[start===null?'':start+1,end===null?'':end+1,count],data:data};
+}
+self.onmessage=function(e){var m=e.data;try{
+  var probe=XLSX.read(m.buffer,{type:'array',bookSheets:true,bookVBA:false});
+  var matched=probe.SheetNames.find(function(n){return norm(n)===norm(m.sheetName);});
+  if(!matched)throw new Error('không có sheet "'+m.sheetName+'"');
+  var wb=XLSX.read(m.buffer,{type:'array',bookVBA:false,cellHTML:false,cellFormula:false,cellStyles:false,sheetStubs:false,dense:true,sheets:[matched]});
+  var res=run(wb,m);wb=null;self.postMessage({ok:true,audit:res.audit,data:res.data});
+}catch(err){self.postMessage({ok:false,error:(err&&err.message)?err.message:String(err)});}};
+</script>
+
+<script>
+(()=>{
+const q=s=>document.querySelector(s),$files=q('#files'),drop=q('#drop'),ref=q('#ref'),sheet=q('#sheet'),colXa=q('#colXa'),colGrp=q('#colGrp'),startInput=q('#startRow'),bValue=q('#bValue'),secsBox=q('#secs'),run=q('#run'),cancelBtn=q('#cancel'),save=q('#save'),status=q('#status'),result=q('#result'),clock=q('#clock'),progressEl=q('#progress');
+let files=[],refBuffer=null,colLabels=[],report=null,cancelled=false,activeWorkers=new Set();
+
+// Thứ tự chuẩn 102 ĐVHC cấp xã (theo file kết quả ThongKe)
+const XA102=['Phường Bình Đức','Phường Mỹ Thới','Phường Long Xuyên','Xã Mỹ Hòa Hưng','Phường Châu Đốc','Phường Vĩnh Tế','Xã An Phú','Xã Khánh Bình','Xã Nhơn Hội','Xã Phú Hữu','Xã Vĩnh Hậu','Phường Tân Châu','Phường Long Phú','Xã Vĩnh Xương','Xã Tân An','Xã Châu Phong','Xã Phú Tân','Xã Chợ Vàm','Xã Phú Lâm','Xã Hòa Lạc','Xã Phú An','Xã Bình Thạnh Đông','Xã Châu Phú','Xã Mỹ Đức','Xã Vĩnh Thạnh Trung','Xã Thạnh Mỹ Tây','Xã Bình Mỹ','Phường Thới Sơn','Phường Chi Lăng','Phường Tịnh Biên','Xã An Cư','Xã Núi Cấm','Xã Tri Tôn','Xã Ba Chúc','Xã Vĩnh Gia','Xã Ô Lâm','Xã Cô Tô','Xã An Châu','Xã Cần Đăng','Xã Vĩnh An','Xã Bình Hòa','Xã Vĩnh Hanh','Xã Chợ Mới','Xã Long Điền','Xã Cù Lao Giêng','Xã Nhơn Mỹ','Xã Long Kiến','Xã Hội An','Xã Thoại Sơn','Xã Phú Hòa','Xã Óc Eo','Xã Tây Phú','Xã Vĩnh Trạch','Xã Định Mỹ','Phường Rạch Giá','Phường Vĩnh Thông','Phường Tô Châu','Phường Hà Tiên','Xã Tiên Hải','Xã Kiên Lương','Xã Hòa Điền','Xã Vĩnh Điều','Xã Giang Thành','Xã Sơn Hải','Xã Hòn Nghệ','Xã Hòn Đất','Xã Bình Sơn','Xã Bình Giang','Xã Sơn Kiên','Xã Mỹ Thuận','Xã Tân Hiệp','Xã Tân Hội','Xã Thạnh Đông','Xã Châu Thành','Xã Thạnh Lộc','Xã Bình An','Xã Giồng Riềng','Xã Thạnh Hưng','Xã Ngọc Chúc','Xã Hòa Hưng','Xã Long Thạnh','Xã Hòa Thuận','Xã Gò Quao','Xã Định Hòa','Xã Vĩnh Hòa Hưng','Xã Vĩnh Tuy','Xã An Biên','Xã Tây Yên','Xã Đông Thái','Xã Vĩnh Hòa','Xã An Minh','Xã Đông Hòa','Xã U Minh Thượng','Xã Tân Thạnh','Xã Đông Hưng','Xã Vân Khánh','Xã Vĩnh Phong','Xã Vĩnh Bình','Xã Vĩnh Thuận','Đặc khu Phú Quốc','Đặc khu Thổ Châu','Đặc khu Kiên Hải'];
+// Khối tiêu chí mặc định: cột + nhãn như file kết quả
+const SEC_DEFAULT=[['T','Mô tả'],['X','Chủ sử dụng / sở hữu'],['Y','Thửa đất'],['AA','Giấy chứng nhận'],['AC','Hồ sơ quét / ký số']];
+
+const hasMem=typeof performance!=='undefined'&&performance.memory;
+const updateClock=()=>{let t=`Thời gian thực: ${new Intl.DateTimeFormat('vi-VN',{dateStyle:'short',timeStyle:'medium'}).format(new Date())}`;if(hasMem){t+=`<br>Bộ nhớ JS: ${(performance.memory.usedJSHeapSize/1048576).toFixed(0)} / ${(performance.memory.jsHeapSizeLimit/1048576).toFixed(0)} MB`;}clock.innerHTML=t;};
+updateClock();setInterval(updateClock,1000);
+
+const clean=v=>(v==null?'':String(v)).replace(/ /g,' ').trim(),norm=v=>clean(v).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d').replace(/\s+/g,' ');
+const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const letter=n=>{let s='';for(n++;n;n=Math.floor((n-1)/26))s=String.fromCharCode(65+(n-1)%26)+s;return s};
+const colIdx=s=>s.split('').reduce((a,ch)=>a*26+ch.charCodeAt(0)-64,0)-1;
+const fmt=n=>typeof n==='number'?n.toLocaleString('vi-VN'):n;
+const xaFromFile=n=>{const x=n.replace(/\.[^.]+$/,'');return x.replace(/^\d+[_-]?/,'').replace(/_/g,' ').trim()||x};
+const cell=(ws,r,c)=>{let x;if(Array.isArray(ws)){const row=ws[r];x=row?row[c]:undefined;}else{x=ws[XLSX.utils.encode_cell({r,c})];}return x?clean(x.w??x.v??''):''};
+const stripPrefix=s=>norm(s).replace(/^(phuong|xa|dac khu|thi tran)\s+/,'');
+const canonMap=new Map();XA102.forEach(n=>{canonMap.set(norm(n),n);if(!canonMap.has(stripPrefix(n)))canonMap.set(stripPrefix(n),n);});
+const canon=n=>canonMap.get(norm(n))||canonMap.get(stripPrefix(n))||clean(n);
+
+// ---------- Cấu hình khối tiêu chí ----------
+function buildSecs(){
+  secsBox.innerHTML='';
+  SEC_DEFAULT.forEach(([col,label],i)=>{
+    const d=document.createElement('div');d.className='sec';
+    d.innerHTML=`<input type="checkbox" checked title="Dùng khối này"><select disabled></select><input type="text" value="${esc(label)}" placeholder="Nhãn khối">`;
+    d.dataset.col=col;secsBox.appendChild(d);
+  });
+}
+buildSecs();
+const secRows=()=>[...secsBox.querySelectorAll('.sec')];
+function fillSelect(sel,val){sel.innerHTML='';colLabels.forEach((t,c)=>sel.add(new Option(`${letter(c)} — ${t}`,c)));if(val<colLabels.length)sel.value=val;sel.disabled=false;}
+
+// ---------- Đọc file tham chiếu ----------
+async function loadReference(){
+  if(!files.length)return;
+  status.textContent='Đang đọc file tham chiếu…';
+  refBuffer=await files[+ref.value].arrayBuffer();
+  const names=XLSX.read(refBuffer,{type:'array',bookSheets:true}).SheetNames;
+  sheet.innerHTML='';names.forEach(n=>sheet.add(new Option(n,n)));
+  const th=names.find(n=>norm(n)==='tonghop'||norm(n)==='tong hop');if(th)sheet.value=th;
+  sheet.disabled=false;loadColumns();
+}
+function loadColumns(){
+  if(!refBuffer||!sheet.value)return;
+  const wb=XLSX.read(refBuffer,{type:'array',dense:true,sheets:[sheet.value],sheetRows:60,cellStyles:false});
+  const ws=wb.Sheets[sheet.value];
+  if(!ws||!ws['!ref']){status.textContent='Không đọc được sheet đã chọn.';return}
+  const z=XLSX.utils.decode_range(ws['!ref']);
+  let numRow=-1;for(let r=0;r<=z.e.r&&numRow<0;r++){let ok=true;for(let c=0;c<5;c++)if(cell(ws,r,c)!==String(c+1)){ok=false;break}if(ok)numRow=r}
+  const hdrEnd=numRow>0?numRow-1:Math.min(z.e.r,8);
+  colLabels=[];
+  for(let c=0;c<=Math.max(z.e.c,colIdx('AC'));c++){
+    let t='';for(let r=hdrEnd;r>=Math.max(0,hdrEnd-4)&&!t;r--)t=cell(ws,r,c);
+    colLabels.push((t||'(không có tiêu đề)').replace(/\s+/g,' ').slice(0,80));
+  }
+  fillSelect(colXa,colIdx('B'));fillSelect(colGrp,colIdx('Q'));
+  secRows().forEach(d=>fillSelect(d.querySelector('select'),colIdx(d.dataset.col)));
+  run.disabled=false;
+  status.textContent=numRow>=0?`Đã nhận diện: dữ liệu bắt đầu từ dòng ${numRow+2} (sau dòng đánh số cột).`:'Không thấy dòng đánh số cột — sẽ tự tìm dòng có "Nhóm …".';
+}
+async function setFiles(list){
+  files=[...list].filter(f=>/\.(xls|xlsx|xlsm|xlsb)$/i.test(f.name));
+  ref.innerHTML='';run.disabled=save.disabled=true;report=null;refBuffer=null;
+  if(!files.length){status.textContent='Chưa chọn file hợp lệ.';return}
+  files.forEach((f,i)=>ref.add(new Option(f.name,i)));ref.disabled=false;await loadReference();
+}
+$files.onchange=e=>setFiles(e.target.files);
+['dragenter','dragover'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add('drag')}));
+['dragleave','drop'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove('drag')}));
+drop.addEventListener('drop',e=>setFiles(e.dataTransfer.files));
+ref.onchange=loadReference;sheet.onchange=()=>refBuffer?loadColumns():loadReference();
+
+// ---------- Worker ----------
+let workerUrl=null;const workerOK=typeof Worker!=='undefined';
+const getWorkerUrl=()=>workerUrl||(workerUrl=URL.createObjectURL(new Blob([q('#worker-src').textContent],{type:'application/javascript'})));
+function runInWorker(buffer,meta){return new Promise((resolve,reject)=>{
+  let w;try{w=new Worker(getWorkerUrl())}catch(e){reject(e);return}
+  activeWorkers.add(w);let done=false;
+  const cleanup=()=>{clearTimeout(tm);activeWorkers.delete(w);try{w.terminate()}catch(e){}};
+  const tm=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('quá thời gian xử lý'))},240000);
+  w.onmessage=e=>{if(done)return;done=true;cleanup();e.data.ok?resolve(e.data):reject(new Error(e.data.error||'lỗi không xác định'))};
+  w.onerror=e=>{if(done)return;done=true;cleanup();reject(new Error(e.message||'worker lỗi (có thể do chặn mạng tới CDN)'))};
+  w.postMessage({...meta,buffer},[buffer]);
+})}
+// Dự phòng khi trình duyệt không hỗ trợ Worker: chạy cùng mã worker trên luồng chính
+let mainRun=null;
+function runMain(buffer,meta){
+  if(!mainRun){const src=q('#worker-src').textContent.replace(/importScripts\([^)]*\);/,'').replace(/self\.onmessage[\s\S]*$/,'');mainRun=new Function('XLSX',src+';return {run,norm};')(XLSX);}
+  const names=XLSX.read(buffer,{type:'array',bookSheets:true}).SheetNames,m=names.find(n=>mainRun.norm(n)===mainRun.norm(meta.sheetName));
+  if(!m)throw new Error(`không có sheet "${meta.sheetName}"`);
+  const wb=XLSX.read(buffer,{type:'array',dense:true,sheets:[m],cellStyles:false,cellFormula:false});
+  const r=mainRun.run(wb,meta);return{ok:true,audit:r.audit,data:r.data};
+}
+async function pool(items,limit,fn){let i=0;await Promise.all(Array.from({length:Math.min(limit,items.length)},async()=>{while(true){const n=i++;if(n>=items.length||cancelled)return;await fn(items[n])}}))}
+
+function setRunning(on){run.disabled=on;if(on)save.disabled=true;cancelBtn.hidden=!on;progressEl.classList.toggle('show',on);if(!on)progressEl.value=0;}
+cancelBtn.onclick=()=>{cancelled=true;status.textContent='Đang hủy…';for(const w of activeWorkers){try{w.terminate()}catch(e){}}activeWorkers.clear();};
+
+// ---------- Tạo bảng tổng hợp ----------
+run.onclick=async()=>{
+  const secs=secRows().filter(d=>d.querySelector('input[type=checkbox]').checked).map(d=>({col:+d.querySelector('select').value,label:clean(d.querySelector('input[type=text]').value)||colLabels[+d.querySelector('select').value]}));
+  const base={sheetName:sheet.value,xc:+colXa.value,gc:+colGrp.value,secs:secs.map(s=>s.col),bValue:clean(bValue.value)||'Nhóm 2',once:q('#optOnce').checked,stripOwner:q('#optOwner').checked,forcedStart:+startInput.value||0};
+  cancelled=false;setRunning(true);refBuffer=null;
+  const agg=new Map(),audit=[['Tên file','Xã trong file','Dòng bắt đầu dữ liệu','Dòng kết thúc dữ liệu','Số thửa đã lấy']],skipped=[];
+  let done=0,processed=0,records=0;
+  await pool(files,workerOK?Math.min(2,navigator.hardwareConcurrency||2):1,async f=>{
+    if(cancelled)return;
+    try{
+      const buffer=await f.arrayBuffer(),meta={...base,fallback:xaFromFile(f.name)};
+      const r=workerOK?await runInWorker(buffer,meta):runMain(buffer,meta);
+      const names=[];
+      for(const [rawXa,d] of Object.entries(r.data)){
+        const xa=canon(rawXa);names.push(xa);
+        const a=agg.get(xa)||{total:0,grp:{},b:0,secs:secs.map(()=>({}))};
+        a.total+=d.total;a.b+=d.b;
+        for(const[k,v]of Object.entries(d.grp))a.grp[k]=(a.grp[k]||0)+v;
+        d.secs.forEach((s,i)=>{for(const[k,v]of Object.entries(s))a.secs[i][k]=(a.secs[i][k]||0)+v;});
+        agg.set(xa,a);
+      }
+      processed++;records+=r.audit[2];audit.push([f.name,names.join('; '),...r.audit]);
+    }catch(e){skipped.push(`${f.name} (${e.message})`)}
+    finally{done++;progressEl.value=Math.round(done/files.length*100);status.textContent=`Đang xử lý: ${done}/${files.length} file…`;}
+  });
+  if(!agg.size){status.textContent='Không lấy được dữ liệu nào. '+(skipped.length?'Lỗi: '+skipped.join('; '):'');setRunning(false);return}
+  report=buildReport(agg,secs,base.bValue,audit);
+  show(report,processed,records,skipped);
+  status.textContent=cancelled?`Đã hủy. Đã xử lý ${processed}/${files.length} file.`:`Hoàn tất: ${processed}/${files.length} file, ${records.toLocaleString('vi-VN')} thửa.`;
+  setRunning(false);save.disabled=false;
+};
+
+// Dựng bảng theo đúng bố cục sheet ThongKe
+function buildReport(agg,secs,bVal,audit){
+  const order=new Map(XA102.map((n,i)=>[n,i]));
+  let xas=[...agg.keys()];
+  if(q('#optAll').checked)xas=[...new Set([...XA102,...xas])];
+  xas.sort((a,b)=>(order.has(a)?order.get(a):1e4)-(order.has(b)?order.get(b):1e4)||a.localeCompare(b,'vi'));
+  const get=x=>agg.get(x)||{total:0,grp:{},b:0,secs:secs.map(()=>({}))};
+  const vals=f=>{const v=xas.map(x=>f(get(x)));return[...v,v.reduce((s,n)=>s+n,0)]};
+  const pct=(a,b)=>a.map((n,i)=>b[i]?Math.round(n/b[i]*1000)/10:0);
+  const rows=[]; // {type,label,values}
+  const total=vals(d=>d.total);
+  rows.push({type:'bold',label:'Tổng số thửa đất',values:total},{type:'gap'},{type:'title',label:'A. THỐNG KÊ THEO NHÓM'});
+  const groups=[...new Set([...agg.values()].flatMap(d=>Object.keys(d.grp)))].sort((a,b)=>a.localeCompare(b,'vi',{numeric:true}));
+  for(const g of groups){const v=vals(d=>d.grp[g]||0);rows.push({type:'row',label:`Số trường hợp — ${g}`,values:v},{type:'row',label:`Tỷ lệ (%) — ${g}`,values:pct(v,total)});}
+  rows.push({type:'gap'},{type:'title',label:`B. ${bVal.toUpperCase()} - THỐNG KÊ CÁC TIÊU CHÍ DỮ LIỆU CẦN HOÀN THIỆN`},{type:'bold',label:`Tổng số trường hợp ${bVal}`,values:vals(d=>d.b)});
+  secs.forEach((s,i)=>{
+    const itemTotals={};for(const d of agg.values())for(const[k,v]of Object.entries(d.secs[i]))itemTotals[k]=(itemTotals[k]||0)+v;
+    const items=Object.keys(itemTotals).sort((a,b)=>itemTotals[b]-itemTotals[a]||a.localeCompare(b,'vi'));
+    rows.push({type:'gap'},{type:'sechead',label:`${s.label} — tổng số`,values:vals(d=>Object.values(d.secs[i]).reduce((a,b)=>a+b,0))});
+    items.forEach((it,k)=>rows.push({type:k===0?'top':'row',label:`${s.label} — ${it}`,values:vals(d=>d.secs[i][it]||0)}));
+  });
+  return{xas,rows,audit,title:`TỔNG HỢP THỐNG KÊ KẾT QUẢ RÀ SOÁT, PHÂN LOẠI THỬA ĐẤT — ${xas.length} xã - Tỉnh An Giang`,sub:clean(q('#subTitle').value)};
+}
+
+function show(rep,processed,records,skipped){
+  const head=['Mục',...rep.xas,'Tổng cộng'],n=head.length;
+  let body='';
+  for(const r of rep.rows){
+    if(r.type==='gap'){body+=`<tr class="gap"><td colspan="${n}"></td></tr>`;continue}
+    if(r.type==='title'){body+=`<tr class="title"><td colspan="${n}">${esc(r.label)}</td></tr>`;continue}
+    const cls=r.type==='row'?'':r.type;
+    body+=`<tr class="${cls}"><td>${esc(r.label)}</td>${r.values.map((v,i)=>`<td${i===r.values.length-1?' class="last"':''}>${fmt(v)}</td>`).join('')}</tr>`;
+  }
+  const bRow=rep.rows.find(r=>r.label&&r.label.startsWith('Tổng số trường hợp'));
+  result.hidden=false;
+  result.innerHTML=`<div class="cards"><div class="card"><b>${processed}</b><span>file đã đọc</span></div><div class="card"><b>${fmt(records)}</b><span>thửa đất</span></div><div class="card"><b>${fmt(bRow.values.at(-1))}</b><span>${esc(bRow.label.replace('Tổng số trường hợp ',''))}</span></div><div class="card"><b>${rep.xas.length}</b><span>xã</span></div></div>
+  <h2>${esc(rep.title)}</h2><p class="hint">${esc(rep.sub)}</p>
+  <div class="table-wrap"><table><thead><tr>${head.map((x,i)=>`<th${i===n-1?' class="last"':''}>${esc(x)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>
+  <p class="hint">File Excel gồm sheet <b>ThongKe</b> (đúng bố cục file kết quả) và <b>Kiem tra doc</b> (phạm vi dữ liệu đã đọc của từng file).</p>
+  ${skipped.length?`<p class="error">Bỏ qua ${skipped.length} file: ${esc(skipped.join('; '))}</p>`:''}`;
+}
+
+// ---------- Xuất Excel (ExcelJS, giữ định dạng file kết quả) ----------
+save.onclick=async()=>{
+  if(!report)return;
+  if(typeof ExcelJS==='undefined'){alert('Chưa tải được thư viện ExcelJS (kiểm tra kết nối mạng tới cdnjs.cloudflare.com).');return}
+  const rep=report,wb=new ExcelJS.Workbook(),ws=wb.addWorksheet('ThongKe');
+  const nCol=rep.xas.length+2,thin={style:'thin'},border={top:thin,left:thin,bottom:thin,right:thin};
+  const F=(o={})=>({name:'Arial',size:10,...o});
+  ws.getColumn(1).width=89.43;for(let c=2;c<nCol;c++)ws.getColumn(c).width=20;ws.getColumn(nCol).width=34;
+  ws.getCell(1,1).value=rep.title;ws.getCell(1,1).font=F({bold:true,size:13});ws.getRow(1).height=16.5;
+  ws.getCell(2,1).value=rep.sub;ws.getCell(2,1).font=F();
+  const hr=ws.getRow(4);hr.height=30;
+  ['Mục',...rep.xas,'Tổng cộng'].forEach((v,i)=>{const c=hr.getCell(i+1);c.value=v;c.font=F({bold:true,size:11,color:{argb:'FFFFFFFF'}});c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F4E78'}};c.alignment={horizontal:'center',vertical:'center',wrapText:true};c.border=border;});
+  let r=5;
+  for(const row of rep.rows){
+    if(row.type==='gap'){r++;continue}
+    const x=ws.getRow(r);
+    if(row.type==='title'){x.getCell(1).value=row.label;x.getCell(1).font=F({bold:true,size:11});r++;continue}
+    [row.label,...row.values].forEach((v,i)=>{
+      const c=x.getCell(i+1);c.value=v;c.border=border;
+      if(row.type==='bold')c.font=F({bold:true,size:11});
+      else if(row.type==='sechead'){c.font=F({bold:true,color:{argb:'FFFFFFFF'}});c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF3E8E6E'}};c.alignment={horizontal:'left',vertical:'center'};}
+      else if(row.type==='top'){c.font=F();c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFFF00'}};}
+      else c.font=F();
+    });
+    r++;
+  }
+  // Sheet kiểm tra
+  const wa=wb.addWorksheet('Kiem tra doc');
+  rep.audit.forEach((row,i)=>{const x=wa.addRow(row);x.eachCell(c=>{c.font=F({bold:i===0});c.border=border;if(i===0){c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFEAF3FF'}};c.alignment={horizontal:'center',vertical:'center',wrapText:true};}});});
+  [45,40,20,20,16].forEach((w,i)=>wa.getColumn(i+1).width=w);
+  const buf=await wb.xlsx.writeBuffer();
+  const d=new Date(),dd=`${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  let name=clean(q('#outName').value)||`ket_qua_tong_${rep.xas.length}_ThongKe_${dd}`;if(!/\.xlsx$/i.test(name))name+='.xlsx';
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));a.download=name;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
+};
+})();
+</script></body></html>
